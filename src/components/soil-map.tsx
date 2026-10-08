@@ -15,22 +15,30 @@ export default function SoilMap({ point, onSelect }: { point: Point; onSelect: (
   select.current = onSelect;
 
   useEffect(() => {
+    const el = container.current;
+    if (!el) return;
     let cancelled = false;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !map.current) return;
+      e.preventDefault();
+      map.current.setZoom(map.current.getZoom() + (e.deltaY < 0 ? 1 : -1));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
     import('leaflet').then(L => {
       if (cancelled || !container.current) return;
-      const instance = L.map(container.current, { zoomControl: false, attributionControl: false }).setView([initialPoint.lat, initialPoint.lon], 9);
+      const instance = L.map(container.current, { zoomControl: false, attributionControl: false, scrollWheelZoom: false }).setView([initialPoint.lat, initialPoint.lon], 9);
       map.current = instance;
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, minZoom: 5 }).addTo(instance);
       marker.current = L.circleMarker([initialPoint.lat, initialPoint.lon], { radius: 8, className: 'soil-point' }).addTo(instance);
       instance.on('click', e => select.current({ lat: e.latlng.lat, lon: e.latlng.lng }));
       setReady(true);
     }).catch(() => { if (!cancelled) setFailed(true); });
-    return () => { cancelled = true; map.current?.remove(); map.current = null; marker.current = null; };
+    return () => { cancelled = true; el.removeEventListener('wheel', onWheel); map.current?.remove(); map.current = null; marker.current = null; };
   }, []);
 
   useEffect(() => { marker.current?.setLatLng([point.lat, point.lon]); }, [point, ready]);
 
-  return <div className="map-shell relative overflow-hidden border-y border-border">
+  return <div className="map-shell relative overflow-hidden rounded-lg border border-border shadow-sm">
     <div ref={container} className="absolute inset-0" role="region" aria-label={copy.map} />
     {!ready && <div className="absolute inset-0 grid place-items-center bg-muted text-sm text-muted-foreground">{failed ? copy.mapError : copy.mapLoading}</div>}
     <div className="map-tools absolute right-5 top-5 z-[500] flex flex-col gap-2">
@@ -41,6 +49,7 @@ export default function SoilMap({ point, onSelect }: { point: Point; onSelect: (
       <Button variant="outline" size="icon" aria-label={copy.reset} title={copy.reset} onClick={() => map.current?.setView([initialPoint.lat, initialPoint.lon], 9)}><LocateFixed /></Button>
     </div>
     <div className="pointer-events-none absolute left-5 top-5 z-[500] border border-border bg-background/95 px-3 py-2 text-xs font-medium text-foreground">{copy.coverage}</div>
-    <a className="absolute bottom-0 right-0 z-[500] bg-background/90 px-2 py-1 text-[10px] text-muted-foreground" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">{copy.mapAttribution}</a>
+    <div className="pointer-events-none absolute bottom-0 left-0 z-[500] rounded-tr-md bg-background/90 px-2 py-1 text-[10px] text-muted-foreground">{copy.mapHint}</div>
+    <a className="absolute bottom-0 right-0 z-[500] rounded-tl-md bg-background/90 px-2 py-1 text-[10px] text-muted-foreground" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">{copy.mapAttribution}</a>
   </div>;
 }
