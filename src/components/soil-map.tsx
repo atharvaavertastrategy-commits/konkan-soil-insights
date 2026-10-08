@@ -38,7 +38,7 @@ export default function SoilMap({ point, onSelect }: { point: Point; onSelect: (
 
   useEffect(() => { marker.current?.setLatLng([point.lat, point.lon]); }, [point, ready]);
 
-  return <div className="map-shell relative overflow-hidden rounded-lg border border-border shadow-sm">
+  return <div className="map-shell isolate relative overflow-hidden rounded-lg border border-border shadow-sm">
     <div ref={container} className="absolute inset-0" role="region" aria-label={copy.map} />
     {!ready && <div className="absolute inset-0 grid place-items-center bg-muted text-sm text-muted-foreground">{failed ? copy.mapError : copy.mapLoading}</div>}
     <div className="map-tools absolute right-5 top-5 z-[500] flex flex-col gap-2">
