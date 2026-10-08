@@ -12,6 +12,7 @@ export const copy = {
   map: 'Konkan soil selection map',
   mapLoading: 'Loading regional map…',
   mapError: 'The map could not load. Please refresh to try again.',
+  mapHint: 'Click the map to select a point · Ctrl + scroll to zoom',
   reset: 'Reset map view',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',

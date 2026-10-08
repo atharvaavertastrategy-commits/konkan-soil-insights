@@ -33,7 +33,7 @@ function Index() {
     } catch { if (id === request.current) setError(true); }
     finally { if (id === request.current) setLoading(false); }
   }
-  const mapFallback = <div className="map-shell grid place-items-center bg-muted text-sm text-muted-foreground">{copy.mapLoading}</div>;
+  const mapFallback = <div className="map-shell grid place-items-center rounded-lg border border-border bg-muted text-sm text-muted-foreground">{copy.mapLoading}</div>;
 
   return <div className="min-h-screen bg-background">
     <header className="border-b border-border bg-card">
@@ -47,7 +47,9 @@ function Index() {
         <div><p className="mb-3 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground">{copy.eyebrow}</p><h1 className="text-[32px] leading-tight font-medium">{copy.title}</h1><p className="mt-3 text-sm text-muted-foreground">{copy.subtitle}</p></div>
         <div className="flex flex-wrap items-end gap-5"><span className="mb-3 flex items-center gap-2 text-[11px] text-muted-foreground"><span className="size-1.5 rounded-full bg-status-warning" />{copy.demo}</span><div className="w-44"><label id="crop-label" className="mb-2 block text-xs font-medium">{copy.crop}</label><Select value={crop} onValueChange={value => { if (crops.includes(value as Crop)) void assess(point, value as Crop); }}><SelectTrigger aria-labelledby="crop-label" className="h-11 bg-card"><SelectValue /></SelectTrigger><SelectContent>{crops.map(value => <SelectItem key={value} value={value}>{copy.crops[value]}</SelectItem>)}</SelectContent></Select></div></div>
       </div>
-      <ClientOnly fallback={mapFallback}><Suspense fallback={mapFallback}><SoilMap point={point} onSelect={p => { void assess(p, crop); }} /></Suspense></ClientOnly>
+      <div className="page-width">
+        <ClientOnly fallback={mapFallback}><Suspense fallback={mapFallback}><SoilMap point={point} onSelect={p => { void assess(p, crop); }} /></Suspense></ClientOnly>
+      </div>
       <section className="page-width pb-10 pt-7" aria-label={copy.report} aria-busy={loading}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{copy.report}<span className="ml-3 text-sm font-normal text-muted-foreground">/ {copy.crops[crop]}</span></h2><p className="flex flex-wrap gap-x-3 gap-y-1 text-xs"><span className="text-muted-foreground">{copy.selected}</span><span className="coordinate font-medium">{point.lat.toFixed(4)}° N, {point.lon.toFixed(4)}° E</span></p></div>
         <div className="report-body" aria-live="polite">
