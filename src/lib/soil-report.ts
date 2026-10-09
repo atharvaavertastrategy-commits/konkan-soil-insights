@@ -1,41 +1,68 @@
-import { copy, type Crop } from './soil-copy';
+import { type Crop } from './soil-copy';
 
 export type Point = { lat: number; lon: number };
 export type Status = 'good' | 'warning' | 'poor';
 export type SoilReport = {
-  ph: number; carbon: number; texture: keyof typeof copy.textures;
+  ph: number; carbon: number; texture: string;
   clay: number; sand: number; silt: number; density: number; estimated: boolean;
-  summary: { text: keyof typeof copy; status: Status }[];
+  summary: { text: string; status: Status }[];
 };
 export const initialPoint: Point = { lat: 17.3, lon: 73.3 };
 
-function modelReport(lat: number, lon: number, crop: Crop): SoilReport | null {
-  // Coarse coastal envelope for demo coverage, not a survey boundary.
-  const coast = 72.75 + (19.5 - lat) * 0.24;
-  if (lat < 15.6 || lat > 19.9 || lon < coast || lon > coast + 0.9) return null;
-  const variation = Math.abs(Math.sin(lat * 3 + lon * 2));
-  const ph = Number((5.7 + variation * 0.9).toFixed(1));
-  const clay = Math.round(31 + variation * 8);
-  const sand = Math.round(34 - variation * 5);
-  const phGood = crop === 'Cashew' ? ph >= 5 : ph >= 5.5;
+// Report shown for the starting location before the first API call.
+export const initialReport: SoilReport = {
+  ph: 6.1, carbon: 0.55, texture: 'clayLoam', clay: 35, sand: 32, silt: 33,
+  density: 1.32, estimated: false,
+  summary: [
+    { text: 'phGood', status: 'good' },
+    { text: 'organic', status: 'warning' },
+    { text: 'water', status: 'warning' },
+    { text: 'drainage', status: 'warning' },
+  ],
+};
+
+type SoilApiFlag = { value: number; status: string };
+type SoilApiResponse = {
+  status: 'ok' | 'no_data';
+  raw_values: { phh2o: number; soc: number; nitrogen: number; clay: number; sand: number; silt: number; bdod: number };
+  texture: string;
+  flags: { ph: SoilApiFlag; soc: SoilApiFlag; nitrogen: SoilApiFlag; bulk_density: SoilApiFlag; texture: string };
+  sentences: string[];
+  interpolated: boolean;
+  source: string;
+};
+
+// Base URL comes from .env (VITE_SOIL_API_BASE) so a deployed backend can be
+// used later without touching code.
+const API_BASE = import.meta.env['VITE_SOIL_API_BASE'] ?? 'http://localhost:8000';
+
+function normalizeStatus(status: string | undefined): Status {
+  return status === 'good' || status === 'poor' ? status : 'warning';
+}
+
+function mapReport(data: SoilApiResponse): SoilReport {
+  const flagStatuses = [
+    data.flags.ph.status, data.flags.soc.status,
+    data.flags.nitrogen.status, data.flags.bulk_density.status,
+  ];
   return {
-    ph, carbon: Number((0.55 + variation * 0.22).toFixed(2)),
-    texture: 'clayLoam', clay, sand, silt: 100 - clay - sand,
-    density: Number((1.26 + variation * 0.12).toFixed(2)),
-    estimated: Math.abs(lat - initialPoint.lat) > 0.15,
-    summary: [
-      { text: phGood ? 'phGood' : 'phPoor', status: phGood ? 'good' : 'poor' },
-      { text: 'organic', status: 'warning' },
-      { text: crop === 'Rice' ? 'riceWater' : 'water', status: crop === 'Rice' ? 'good' : 'warning' },
-      { text: 'drainage', status: crop === 'Rice' ? 'good' : 'warning' },
-    ],
+    ph: data.raw_values.phh2o,
+    carbon: data.raw_values.soc,
+    texture: data.texture,
+    clay: data.raw_values.clay, sand: data.raw_values.sand, silt: data.raw_values.silt,
+    density: data.raw_values.bdod,
+    estimated: data.interpolated,
+    summary: data.sentences.map((text, index) => ({ text, status: normalizeStatus(flagStatuses[index]) })),
   };
 }
-export const initialReport = modelReport(initialPoint.lat, initialPoint.lon, 'Mango');
 
-// Replace this function's body with the real API request; keep its typed contract.
-// The modeled values below are synthetic placeholders, not field measurements.
-export async function getSoilReport(lat: number, lon: number, crop: Crop): Promise<SoilReport | null> {
-  await new Promise(resolve => setTimeout(resolve, 650));
-  return modelReport(lat, lon, crop);
+// Real data source: FastAPI backend (GET /soil-report). Same typed contract
+// and signature as the mock this function replaces.
+export async function getSoilReport(lat: number, lon: number, crop: Crop, lang = 'en'): Promise<SoilReport | null> {
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lon), crop, lang });
+  const response = await fetch(`${API_BASE}/soil-report?${params.toString()}`);
+  if (!response.ok) throw new Error(`Soil API request failed with status ${response.status}`);
+  const data: SoilApiResponse = await response.json();
+  if (data.status !== 'ok') return null;
+  return mapReport(data);
 }
