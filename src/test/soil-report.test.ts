@@ -37,7 +37,8 @@ describe('Soil API data source', () => {
     expect(report.subsoil).not.toBeUndefined();
     expect(report.subsoil?.ph).toBe(6.4);
     expect(report.subsoil?.density).toBe(1.35);
-    expect(report.subsoil?.clay + report.subsoil?.sand + report.subsoil?.silt).toBe(100);
+    if (!report.subsoil) return;
+    expect(report.subsoil.clay + report.subsoil.sand + report.subsoil.silt).toBe(100);
     expect(report.estimated).toBe(true);
     expect(report.summary[0]).toEqual({ text: 'Soil pH is well suited for this crop.', status: 'good' });
   });

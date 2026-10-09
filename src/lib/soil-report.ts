@@ -73,7 +73,7 @@ function mapReport(data: SoilApiResponse): SoilReport {
   const surface = raw['0-5cm'] ? toLayer(raw['0-5cm'], textureAt('0-5cm')) : undefined;
   const subsoil = raw['5-15cm'] ? toLayer(raw['5-15cm'], textureAt('5-15cm')) : undefined;
   if (!surface) throw new Error('Soil API response has no surface values');
-  return { surface, subsoil, estimated: data.interpolated, summary };
+  return { surface, estimated: data.interpolated, summary, ...(subsoil ? { subsoil } : {}) };
 }
 
 // Real data source: FastAPI backend (GET /soil-report). Same typed contract
