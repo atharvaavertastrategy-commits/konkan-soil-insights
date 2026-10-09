@@ -34,7 +34,7 @@ type SoilApiResponse = {
 
 // Base URL comes from .env (VITE_SOIL_API_BASE) so a deployed backend can be
 // used later without touching code.
-const API_BASE = import.meta.env.VITE_SOIL_API_BASE ?? 'http://localhost:8000';
+const API_BASE = import.meta.env['VITE_SOIL_API_BASE'] ?? 'http://localhost:8000';
 
 function normalizeStatus(status: string | undefined): Status {
   return status === 'good' || status === 'poor' ? status : 'warning';
